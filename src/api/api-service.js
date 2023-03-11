@@ -12,6 +12,7 @@ export default class ImageApiService {
     const response = await axios.get(
       `https://pixabay.com/api/?key=${ID_KEY}&q=${this.searchQuery}&image_type=photo&page=${this.page}&per_page=40`
     );
+    this.page += 1;
     const newImage = await response.data;
     return newImage;
   }

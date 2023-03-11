@@ -9,6 +9,8 @@ const loadMore = document.querySelector('.load-more');
 
 const imageApi = new ImageApiService();
 
+let lightbox = new SimpleLightbox('.gallery a');
+
 formEl.addEventListener('submit', onFormSubmit);
 loadMore.addEventListener('click', onLoadMore);
 galleryEl.addEventListener('submit', createMarkup);
@@ -27,14 +29,17 @@ function onFormSubmit(e) {
   imageApi.resetPage();
   try {
     imageApi.fetchImages().then(data => {
-      Notiflix.Notify.success(`Hooray! We found ${data.totalHits} images.`);
       createMarkup(data);
+      checkTotalHits(data);
+      lightbox.refresh();
+      if (data.totalHits <= 40) {
+        hideMoreLoad();
+      }
       loadMore.disabled = false;
       imageApi.card = galleryEl.children.length;
-      console.log(imageApi.totalCards);
     });
   } catch (error) {
-    console.log(error);
+    Notiflix.Notify.failure(`${error}`);
   }
 }
 
@@ -42,16 +47,24 @@ function onLoadMore() {
   try {
     imageApi.fetchImages().then(data => {
       createMarkup(data);
+      const { height: cardHeight } = document
+        .querySelector('.gallery')
+        .firstElementChild.getBoundingClientRect();
+
+      window.scrollBy({
+        top: cardHeight * 2,
+        behavior: 'smooth',
+      });
       imageApi.card = galleryEl.children.length;
       if (imageApi.card === data.totalHits) {
-        loadMore.classList.toggle('is-show');
+        hideMoreLoad();
         return Notiflix.Notify.failure(
           "We're sorry, but you've reached the end of search results."
         );
       }
     });
   } catch (error) {
-    console.log(error);
+    Notiflix.Notify.failure(`${error}`);
   }
 }
 
@@ -94,7 +107,16 @@ function showMoreLoad() {
   loadMore.classList.add('is-show');
 }
 
-let lightbox = new SimpleLightbox('.gallery a');
-lightbox.on('show.simplelightbox', onLightBoxOpen);
+function hideMoreLoad() {
+  loadMore.classList.toggle('is-show');
+}
 
-console.log(lightbox);
+function checkTotalHits(data) {
+  if (data.totalHits === 0) {
+    Notiflix.Notify.failure(
+      `Sorry, there are no images matching your search query. Please try again.`
+    );
+    return;
+  }
+  Notiflix.Notify.success(`Hooray! We found ${data.totalHits} images.`);
+}
